@@ -1,4 +1,43 @@
 # Steins-Gate
+# 陈思阳-25348054-第二次人工智能编程作业
+## 1. 任务拆解与 AI 协作策略
+步骤1：数据结构化与基础读取。首先要求AI根据提供的文本数据建立基础的读取逻辑，确保能够正确解析制表符分隔的字符串，并将其转化为Python字典或对象。
+步骤2：功能模块化实现。将“查找”、“点名”、“生成考场表”和“生成准考证”四个功能分别提问，优先解决逻辑实现（如random.sample的使用和文件写入格式），确保每个功能点独立运行正常。
+步骤3：OOP重构与工程规范约束。在功能逻辑跑通后，要求AI将所有代码重构为面向对象（OOP）模式，引入Student类和ExamSystem类，并强制要求加入异常处理和标准库限制，以符合最终作业规范。
+## 2. 核心 Prompt 迭代记录
+初代 Prompt：编写一个Python程序，读取学生名单文件，实现学号查找和随机点名，最后生成考场安排表和准考证文件。
+AI 生成的问题/缺陷：代码采用了纯函数式写法，没有封装类；直接使用了pandas库处理数据；且没有对用户输入非数字字符进行异常捕获，导致输入错误时程序直接崩溃。
+优化后的 Prompt (追问)：请使用面向对象编程(OOP)重构代码。要求：1. 定义Student类（含__str__）和ExamSystem类；2. 严禁使用第三方库，仅限os, random, datetime等标准库；3. 必须包含try-except处理文件丢失和输入非法数值的异常；4. 增加一个静态方法用于校验学号或输入格式。
+## 3. Debug 与异常处理记录
+报错类型/漏洞现象：在生成准考证文件时，程序报错 `FileNotFoundError: [Errno 2] No such file or directory: '准考证/01.txt'`。
+解决过程：通过查看报错堆栈发现，虽然代码尝试在“准考证”文件夹下写文件，但如果该文件夹在运行前不存在，Python不会自动创建。我将报错反馈给AI后，AI在代码中加入了 `if not os.path.exists(folder): os.makedirs(folder)` 逻辑，确保了路径的动态生成。
+## 4. 人工代码审查 (Code Review)
+```python
+# 以下为 ExamSystem 类中生成准考证的核心逻辑及人工注释
+def generate_admit_cards(self):
+    # 检查是否已经生成了随机排序后的名单，如果没有则提醒用户先执行功能3
+    if not self.shuffled_students:
+        print("【提醒】请先执行功能3以生成考场随机安排顺序。")
+        return
+    folder = "准考证" # 定义存放准考证的文件夹名称
+    try:
+        # 检查当前目录下是否存在该文件夹，若不存在则调用os模块创建它
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        # 遍历打乱顺序后的学生列表，i作为座位号（从1开始），s为学生对象
+        for i, s in enumerate(self.shuffled_students, 1):
+            filename = f"{i:02d}.txt" # 格式化文件名，确保1显示为01，保持排序整齐
+            file_path = os.path.join(folder, filename) # 跨平台路径拼接，确保在不同系统下路径正确
+            # 使用with语句安全打开文件，设置utf-8编码防止中文乱码
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(f"考场座位号：{i:02d}\n") # 将座位号写入文件第一行
+                f.write(f"姓名：{s.name}\n") # 调用学生对象的name属性写入姓名
+                f.write(f"学号：{s.sid}\n") # 调用学生对象的sid属性写入学号
+        # 循环结束后，打印成功提示及生成的文件总数
+        print(f"【操作成功】已在 '{folder}' 目录下生成 {len(self.shuffled_students)} 份准考证。")
+    except Exception as e:
+        # 如果在创建文件夹或写文件过程中发生任何IO异常，捕获并打印错误原因
+        print(f"【系统异常】准考证生成失败：{e}")
 import os
 import random
 from datetime import datetime
