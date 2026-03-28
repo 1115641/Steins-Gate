@@ -2,134 +2,121 @@
 import os
 import random
 from datetime import datetime
-# 定义学生数据类，用于存储和展示学生个体信息
-class Student:
-    # 初始化方法：接收并存储学生的各项基本属性
-    def __init__(self, index, name, gender, cls, sid, college):
-        self.index = index # 序号属性
-        self.name = name # 姓名属性
-        self.gender = gender # 性别属性
-        self.cls = cls # 班级属性
-        self.sid = sid # 学号属性
-        self.college = college # 学院属性
-    # 魔术方法：当打印对象或将对象转为字符串时自动调用，返回友好的信息格式
-    def __str__(self):
-        return f"姓名：{self.name} | 性别：{self.gender} | 班级：{self.cls} | 学号：{self.sid} | 学院：{self.college}"
-# 定义考试系统逻辑控制类，封装所有核心业务功能
-class ExamSystem:
-    # 构造方法：初始化系统，设置文件路径并加载数据
-    def __init__(self, file_path):
-        self.file_path = file_path # 设置数据源文件路径
-        self.students = [] # 用于存放所有Student对象的列表
-        self.shuffled_students = [] # 用于存放打乱顺序后的学生列表（生成安排表后使用）
-        self.load_data() # 在实例化时自动调用加载数据的方法
-    # 静态方法：用于校验输入字符串是否为合法的纯数字格式
-    @staticmethod
-    def is_valid_number(text):
-        return text.isdigit() # 返回布尔值：是数字则为True，否则为False
-    # 数据加载方法：读取文本文件并实例化Student对象
-    def load_data(self):
-        try:
-            # 以只读模式和utf-8编码打开学生名单文件
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()[1:] # 读取所有行并跳过第一行表头
-                for line in lines:
-                    if line.strip(): # 确保当前行不是只有空格或换行符的空行
-                        p = line.split() # 将每一行按空白字符分割成列表
-                        # 实例化Student对象并添加到系统列表中
-                        self.students.append(Student(p[0], p[1], p[2], p[3], p[4], p[5]))
-        except FileNotFoundError:
-            print(f"【系统异常】未找到文件：{self.file_path}，请检查路径。")
-        except Exception as e:
-            print(f"【系统异常】数据加载失败，原因：{e}")
-    # 功能1：按学号查找学生信息
-    def find_student(self):
-        search_id = input("请输入待查找的学生学号：").strip() # 获取用户输入并去除两端空格
-        found = False # 初始化查找状态标识
-        for s in self.students: # 遍历学生列表
-            if s.sid == search_id: # 如果学号匹配
-                print(f"【查询结果】{s}") # 打印该学生对象（触发__str__）
-                found = True # 标记已找到
-                break # 退出循环
-        if not found: # 如果循环结束仍未找到
-            print("【错误提示】输入的学号不存在，请核对后再试。")
-    # 功能2：随机点名功能
-    def random_roll_call(self):
-        try:
-            val = input("请输入需要随机点名的学生数量：") # 获取用户输入
-            if not self.is_valid_number(val): # 调用静态方法验证输入
-                raise ValueError("点名数量必须是正整数字符。") # 手动触发异常
-            count = int(val) # 将字符串转换为整数
-            if count &gt; len(self.students): # 检查是否超过总人数
-                print(f"【输入错误】数量不能超过总人数（当前总计 {len(self.students)} 人）。")
-            elif count &lt;= 0: # 检查是否为非正数
-                print("【输入错误】点名数量必须大于0。")
-            else:
-                # 使用random库的sample方法实现不重复随机采样
-                selected = random.sample(self.students, count)
-                print(f"--- 随机点名结果（共 {count} 人） ---")
-                for i, s in enumerate(selected, 1): # 遍历采样结果并打印
-                    print(f"{i}. {s.name} (学号:{s.sid})")
-        except ValueError as e:
-            print(f"【输入异常】{e}") # 捕获并打印非法数值异常
-    # 功能3：生成随机考场安排表
-    def generate_exam_table(self):
-        if not self.students: # 检查学生列表是否为空
-            print("【错误】系统内无学生数据，请先检查数据源。")
+# 初始化学生数据文件，如果不存在则创建（方便直接运行演示）
+def init_data_file():
+    filename = "人工智能编程语言学生名单.txt"
+    if not os.path.exists(filename):
+        content = """序号	姓名	性别	班级	学号	学院
+1	张三	男	1	2001101	电气
+2	李四	女	2	2001102	能动
+3	魏五	男	3	2001103	能动
+4	丁七	女	1	2001104	电气
+5	王八	男	2	2001105	计算机
+6	何九	女	3	2001106	计算机
+7	赵十	男	1	2001107	外国语
+8	吴一	女	2	2001108	外国语
+9	蓝二	男	3	2001109	经管
+10	刘六	女	1	2001110	经管"""
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
+# 加载学生信息
+def load_students():
+    students = []
+    try:
+        with open("人工智能编程语言学生名单.txt", "r", encoding="utf-8") as f:
+            lines = f.readlines()[1:] # 跳过表头
+            for line in lines:
+                if line.strip():
+                    parts = line.split()
+                    students.append({
+                        "姓名": parts[1],
+                        "性别": parts[2],
+                        "班级": parts[3],
+                        "学号": parts[4],
+                        "学院": parts[5]
+                    })
+    except FileNotFoundError:
+        print("错误：未找到学生名单文件！")
+    return students
+# 功能1：查找学生
+def find_student(students):
+    search_id = input("请输入要查找的学号: ").strip()
+    for s in students:
+        if s["学号"] == search_id:
+            print(f"查询结果 -&gt; 姓名: {s['姓名']}, 性别: {s['性别']}, 班级: {s['班级']}, 学院: {s['学院']}")
             return
-        self.shuffled_students = self.students[:] # 浅拷贝一份学生列表
-        random.shuffle(self.shuffled_students) # 使用shuffle方法随机打乱列表顺序
-        time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # 获取当前格式化时间
-        try:
-            # 在根目录下创建或覆盖考场安排表文件
-            with open("考场安排表.txt", "w", encoding="utf-8") as f:
-                f.write(f"生成时间：{time_str}\n") # 写入第一行时间信息
-                f.write("座位号\t姓名\t学号\n") # 写入表头
-                for i, s in enumerate(self.shuffled_students, 1): # 遍历乱序后的列表
-                    f.write(f"{i}\t{s.name}\t{s.sid}\n") # 按格式写入学生座位信息
-            print("【操作成功】考场安排表.txt 已在根目录生成。")
-        except Exception as e:
-            print(f"【文件异常】写入安排表失败：{e}")
-    # 功能4：生成独立准考证文件
-    def generate_admit_cards(self):
-        if not self.shuffled_students: # 检查是否已生成随机安排
-            print("【提醒】请先执行功能3以生成考场随机安排顺序。")
-            return
-        folder = "准考证" # 定义文件夹名称
-        try:
-            if not os.path.exists(folder): # 如果文件夹不存在
-                os.makedirs(folder) # 创建该文件夹
-            for i, s in enumerate(self.shuffled_students, 1): # 遍历已排序的学生
-                filename = f"{i:02d}.txt" # 格式化文件名，如 01.txt, 02.txt
-                file_path = os.path.join(folder, filename) # 拼接完整路径
-                with open(file_path, "w", encoding="utf-8") as f: # 创建并写入文件
-                    f.write(f"考场座位号：{i:02d}\n") # 写入座位号
-                    f.write(f"姓名：{s.name}\n") # 写入姓名
-                    f.write(f"学号：{s.sid}\n") # 写入学号
-            print(f"【操作成功】已在 '{folder}' 目录下生成 {len(self.shuffled_students)} 份准考证。")
-        except Exception as e:
-            print(f"【系统异常】准考证生成失败：{e}")
-# 主程序运行入口
-if __name__ == "__main__":
-    # 实例化考试系统，传入学生名单文件名
-    system = ExamSystem("人工智能编程语言学生名单.txt")
-    while True: # 循环显示菜单
-        print("\n" + "="*30)
-        print("  人工智能编程语言学生管理系统")
-        print("="*30)
-        print("1. 查找学生完整信息")
-        print("2. 随机点名抽查")
-        print("3. 生成随机考场安排表")
-        print("4. 批量生成准考证文件")
+    print("抱歉，未找到该学号的学生信息。")
+# 功能2：随机点名
+def random_roll_call(students):
+    try:
+        count_input = input("请输入需要点名的学生数量: ")
+        count = int(count_input) # 转换数字
+        if count &gt; len(students):
+            print(f"错误：点名人数不能超过总人数({len(students)}人)。")
+        elif count &lt;= 0:
+            print("错误：请输入大于0的数字。")
+        else:
+            selected = random.sample(students, count)
+            print("--- 随机点名名单 ---")
+            for i, s in enumerate(selected, 1):
+                print(f"{i}. {s['姓名']} ({s['学号']})")
+    except ValueError:
+        print("异常：请输入有效的数字字符！")
+# 功能3：生成考场安排表
+def generate_exam_table(students):
+    shuffled_students = students[:]
+    random.shuffle(shuffled_students) # 随机打乱
+    now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    filename = "考场安排表.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"生成时间：{now_time}\n") # 第一行时间
+        f.write("考场座位号\t姓名\t学号\n")
+        for i, s in enumerate(shuffled_students, 1):
+            f.write(f"{i:02d}\t{s['姓名']}\t{s['学号']}\n")
+    print(f"成功：已生成『{filename}』")
+    return shuffled_students
+# 功能4：生成准考证目录
+def generate_admit_cards(shuffled_students):
+    folder_name = "准考证" # 准考证文件夹名称
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    for i, s in enumerate(shuffled_students, 1):
+        file_name = f"{i:02d}.txt" # 文件名如 01.txt
+        file_path = os.path.join(folder_name, file_name)
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(f"考场座位号: {i:02d}\n")
+            f.write(f"姓名: {s['姓名']}\n")
+            f.write(f"学号: {s['学号']}\n")
+    print(f"成功：已在『{folder_name}』文件夹下生成所有准考证。")
+# 主程序入口
+def main():
+    init_data_file()
+    students = load_students()
+    if not students: return
+    shuffled_cache = [] # 用于缓存打乱后的名单以生成准考证
+    while True:
+        print("\n=== 学生信息管理系统 ===")
+        print("1. 信息查找 (按学号)")
+        print("2. 随机点名")
+        print("3. 生成考场安排表")
+        print("4. 生成准考证文件")
         print("0. 退出系统")
-        print("-" * 30)
-        user_choice = input("请选择要执行的操作 (0-4): ").strip() # 获取用户指令
-        if user_choice == "1": system.find_student() # 执行查找
-        elif user_choice == "2": system.random_roll_call() # 执行点名
-        elif user_choice == "3": system.generate_exam_table() # 执行生成表格
-        elif user_choice == "4": system.generate_admit_cards() # 执行生成准考证
-        elif user_choice == "0": # 退出逻辑
-            print("系统已安全关闭，再见！")
+        choice = input("请选择功能 (0-4): ")
+        if choice == "1":
+            find_student(students)
+        elif choice == "2":
+            random_roll_call(students)
+        elif choice == "3":
+            shuffled_cache = generate_exam_table(students)
+        elif choice == "4":
+            if not shuffled_cache:
+                print("提示：请先执行功能3生成考场安排表。")
+            else:
+                generate_admit_cards(shuffled_cache)
+        elif choice == "0":
+            print("系统已退出。")
             break
         else:
-            print("【无效输入】请输入 0 到 4 之间的数字。")
+            print("无效输入，请重新选择。")
+if __name__ == "__main__":
+    main()
